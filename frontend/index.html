@@ -4,7 +4,172 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Hedge Dashboard - Binance Futures</title>
-<link rel="stylesheet" href="/static/style.css" />
+<style>
+:root {
+  --bg: #0b0e11;
+  --panel: #161a1e;
+  --panel-2: #1e2329;
+  --text: #eaecef;
+  --muted: #848e9c;
+  --green: #0ecb81;
+  --red: #f6465d;
+  --accent: #f0b90b;
+  --border: #2b3139;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.banner {
+  text-align: center;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  display: none;
+}
+.banner.testnet {
+  display: block;
+  background: var(--accent);
+  color: #1b1b1b;
+}
+.banner.live {
+  display: block;
+  background: var(--red);
+  color: white;
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.topbar h1 { font-size: 16px; margin: 0; }
+.price-box { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+#live-price { font-size: 18px; font-weight: 700; color: var(--green); }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-off { background: var(--red); }
+.dot-on { background: var(--green); }
+
+details.config {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+details.config summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+details.config .field { margin-top: 10px; }
+
+.accounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 480px) {
+  .accounts { grid-template-columns: 1fr; }
+}
+
+.account-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.account-card h3 { margin: 0 0 8px; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.tag-main { background: rgba(14,203,129,0.15); color: var(--green); }
+.tag-sub { background: rgba(240,185,11,0.15); color: var(--accent); }
+.acc-label { color: var(--muted); font-weight: 400; }
+
+.row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.row span { color: var(--muted); }
+.positions { margin-top: 6px; font-size: 12px; }
+.position-line { display: flex; justify-content: space-between; padding: 2px 0; border-top: 1px dashed var(--border); }
+.pos-long { color: var(--green); }
+.pos-short { color: var(--red); }
+
+.order-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab {
+  flex: 1;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.tab.active { color: var(--text); border-color: var(--accent); }
+
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.field input, .field select {
+  width: 100%;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+.field small { color: var(--muted); font-size: 11px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+.direction-info {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.btn { padding: 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.btn-long { background: var(--green); color: #05130c; }
+.btn-short { background: var(--red); color: #fff; }
+.btn-close { width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.result-log {
+  margin-top: 12px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  background: #000;
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+</style>
 </head>
 <body>
 <div id="testnet-banner" class="banner"></div>
@@ -18,6 +183,19 @@
       <span id="ws-status" class="dot dot-off"></span>
     </div>
   </header>
+
+  <details class="config" id="config-box">
+    <summary>Configuración (servidor / token)</summary>
+    <div class="field">
+      <label>URL del servidor (Railway)</label>
+      <input id="server-url" type="text" placeholder="https://tu-app.up.railway.app" />
+    </div>
+    <div class="field">
+      <label>Token del panel (el mismo que pusiste en DASHBOARD_TOKEN en Railway)</label>
+      <input id="dashboard-token" type="password" placeholder="tu-token-secreto" />
+    </div>
+    <button id="btn-save-config" class="btn btn-close" style="margin-top:4px">Guardar y conectar</button>
+  </details>
 
   <section class="accounts">
     <div class="account-card" id="card-main">
@@ -93,6 +271,288 @@
   </section>
 </div>
 
-<script src="/static/app.js"></script>
+<script>
+const $ = (sel) => document.querySelector(sel);
+
+const state = {
+  orderType: "MARKET",
+  isTestnet: true,
+  lastMarkPrice: 0,
+};
+
+function apiBase() {
+  return (localStorage.getItem("server_url") || "").replace(/\/+$/, "");
+}
+function token() {
+  return localStorage.getItem("dashboard_token") || "";
+}
+
+function log(msg, obj) {
+  const el = $("#result-log");
+  const time = new Date().toLocaleTimeString();
+  let line = `[${time}] ${msg}`;
+  if (obj !== undefined) line += "\n" + JSON.stringify(obj, null, 2);
+  el.textContent = line + "\n\n" + el.textContent;
+}
+
+async function api(path, options = {}) {
+  const resp = await fetch(apiBase() + path, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Dashboard-Token": token(),
+      ...(options.headers || {}),
+    },
+  });
+  if (resp.status === 401) {
+    log("Token inválido o faltante. Revisa la Configuración arriba.");
+    throw new Error("401 no autorizado");
+  }
+  return resp.json();
+}
+
+// ---------- configuración (servidor / token) ----------
+function loadConfigIntoInputs() {
+  $("#server-url").value = localStorage.getItem("server_url") || (location.origin.startsWith("http") ? location.origin : "");
+  $("#dashboard-token").value = localStorage.getItem("dashboard_token") || "";
+}
+
+function saveConfig() {
+  localStorage.setItem("server_url", $("#server-url").value.trim());
+  localStorage.setItem("dashboard_token", $("#dashboard-token").value.trim());
+  $("#config-box").open = false;
+  bootstrap();
+}
+
+$("#btn-save-config").addEventListener("click", saveConfig);
+
+// ---------- salud / banner testnet ----------
+async function loadHealth() {
+  try {
+    const health = await api("/api/health");
+    state.isTestnet = health.testnet;
+    const banner = $("#testnet-banner");
+    if (health.testnet) {
+      banner.className = "banner testnet";
+      banner.textContent = "MODO TESTNET — dinero de prueba, no es real";
+    } else {
+      banner.className = "banner live";
+      banner.textContent = "MODO EN VIVO — dinero real, cuidado";
+    }
+  } catch (e) {
+    log("No se pudo conectar al servidor. Revisa la URL y el token en Configuración.");
+  }
+}
+
+// ---------- resumen de cuentas ----------
+function renderAccount(cardId, data) {
+  const card = $(cardId);
+  card.querySelector(".acc-label").textContent = data.label || "";
+  if (data.error) {
+    card.querySelector(".avail").textContent = "error";
+    card.querySelector(".wallet").textContent = "--";
+    card.querySelector(".pnl").textContent = "--";
+    card.querySelector(".positions").textContent = JSON.stringify(data.error);
+    return;
+  }
+  card.querySelector(".avail").textContent = `${data.available_usdt.toFixed(2)} USDT`;
+  card.querySelector(".wallet").textContent = `${data.wallet_usdt.toFixed(2)} USDT`;
+  const pnlEl = card.querySelector(".pnl");
+  pnlEl.textContent = `${data.cross_unpnl.toFixed(2)} USDT`;
+  pnlEl.style.color = data.cross_unpnl >= 0 ? "var(--green)" : "var(--red)";
+
+  const posEl = card.querySelector(".positions");
+  posEl.innerHTML = "";
+  if (!data.positions.length) {
+    posEl.innerHTML = '<div class="position-line"><span>Sin posiciones abiertas</span></div>';
+  }
+  for (const p of data.positions) {
+    const dir = p.amount > 0 ? "LONG" : "SHORT";
+    const cls = p.amount > 0 ? "pos-long" : "pos-short";
+    const line = document.createElement("div");
+    line.className = "position-line";
+    line.innerHTML = `<span class="${cls}">${p.symbol} ${dir} x${p.leverage}</span><span>${p.unrealized_pnl.toFixed(2)} USDT</span>`;
+    posEl.appendChild(line);
+  }
+}
+
+async function refreshAccounts() {
+  try {
+    const summary = await api("/api/accounts/summary");
+    if (summary.main) renderAccount("#card-main", summary.main);
+    if (summary.sub) renderAccount("#card-sub", summary.sub);
+  } catch (e) {
+    // ya se logueó en api()
+  }
+}
+
+// ---------- info de símbolo (precio, máximo apalancamiento) ----------
+async function refreshSymbolInfo() {
+  const symbol = $("#symbol").value.trim().toUpperCase();
+  if (!symbol) return;
+  try {
+    const info = await api(`/api/symbol/${symbol}`);
+    if (info.error) {
+      $("#qty-hint").textContent = "No se pudo cargar el símbolo";
+      return;
+    }
+    $("#symbol-label").textContent = info.symbol;
+    const leverage = Number($("#leverage").value);
+    const summary = await api("/api/accounts/summary");
+    const avail = summary.main && !summary.main.error ? summary.main.available_usdt : 0;
+    const maxNotional = avail * leverage;
+    const maxQty = info.mark_price > 0 ? maxNotional / info.mark_price : 0;
+    $("#qty-hint").textContent = `Precio: ${info.mark_price} · Máx. apalancamiento del par: x${info.max_leverage} · Con x${leverage} y tu disponible podrías abrir hasta ~${maxQty.toFixed(4)} ${symbol.replace("USDT", "")}`;
+  } catch (e) {
+    // ya se logueó en api()
+  }
+}
+
+// ---------- websocket de precio en vivo ----------
+let priceSocket = null;
+function connectPriceSocket() {
+  const symbol = $("#symbol").value.trim().toUpperCase();
+  if (!symbol || !apiBase()) return;
+  if (priceSocket) priceSocket.close();
+
+  const httpBase = apiBase();
+  const wsBase = httpBase.replace(/^http/, "ws");
+  priceSocket = new WebSocket(`${wsBase}/ws/price/${symbol}?token=${encodeURIComponent(token())}`);
+  const dot = $("#ws-status");
+
+  priceSocket.onopen = () => {
+    dot.className = "dot dot-on";
+  };
+  priceSocket.onclose = () => {
+    dot.className = "dot dot-off";
+  };
+  priceSocket.onmessage = (evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.error) return;
+    state.lastMarkPrice = data.mark_price;
+    $("#live-price").textContent = data.mark_price.toFixed(4);
+    $("#symbol-label").textContent = data.symbol;
+  };
+}
+
+// ---------- tabs mercado/límite ----------
+document.querySelectorAll(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+    tab.classList.add("active");
+    state.orderType = tab.dataset.type;
+    $("#price-field").style.display = state.orderType === "LIMIT" ? "block" : "none";
+  });
+});
+
+// ---------- abrir hedge ----------
+async function openHedge(mainDirection) {
+  const symbol = $("#symbol").value.trim().toUpperCase();
+  const leverage = Number($("#leverage").value);
+  const marginType = $("#margin-type").value;
+  const quantity = Number($("#quantity").value);
+  const price = state.orderType === "LIMIT" ? Number($("#price").value) : null;
+  const reduceOnly = $("#reduce-only").checked;
+
+  if (!symbol || !quantity || quantity <= 0) {
+    alert("Pon un símbolo y una cantidad válida.");
+    return;
+  }
+  if (state.orderType === "LIMIT" && !price) {
+    alert("Pon un precio límite.");
+    return;
+  }
+  if (!state.isTestnet) {
+    const ok = confirm(
+      `MODO EN VIVO. Vas a abrir ${mainDirection} en Principal y lo contrario en Sub-cuenta, símbolo ${symbol}, cantidad ${quantity}. ¿Confirmas?`
+    );
+    if (!ok) return;
+  }
+
+  setButtonsDisabled(true);
+  try {
+    log(`Preparando apalancamiento x${leverage} (${marginType}) en las dos cuentas...`);
+    await api(`/api/symbol/${symbol}/prepare`, {
+      method: "POST",
+      body: JSON.stringify({ leverage, margin_type: marginType }),
+    });
+
+    log(`Abriendo orden: Principal=${mainDirection}, Sub-cuenta=${mainDirection === "LONG" ? "SHORT" : "LONG"}, cantidad=${quantity}...`);
+    const result = await api("/api/hedge/open", {
+      method: "POST",
+      body: JSON.stringify({
+        symbol,
+        main_direction: mainDirection,
+        order_type: state.orderType,
+        quantity,
+        price,
+        reduce_only: reduceOnly,
+      }),
+    });
+    log(`Resultado (${result.total_ms} ms total):`, result);
+    await refreshAccounts();
+  } catch (e) {
+    log("Error abriendo hedge", String(e));
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+async function closeHedge() {
+  const symbol = $("#symbol").value.trim().toUpperCase();
+  if (!symbol) return;
+  const ok = confirm(`¿Cerrar las posiciones abiertas de ${symbol} en las dos cuentas?`);
+  if (!ok) return;
+
+  setButtonsDisabled(true);
+  try {
+    log(`Cerrando posiciones de ${symbol} en las dos cuentas...`);
+    const result = await api("/api/hedge/close", {
+      method: "POST",
+      body: JSON.stringify({ symbol }),
+    });
+    log(`Resultado cierre (${result.total_ms} ms total):`, result);
+    await refreshAccounts();
+  } catch (e) {
+    log("Error cerrando hedge", String(e));
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+function setButtonsDisabled(disabled) {
+  $("#btn-long").disabled = disabled;
+  $("#btn-short").disabled = disabled;
+  $("#btn-close").disabled = disabled;
+}
+
+$("#btn-long").addEventListener("click", () => openHedge("LONG"));
+$("#btn-short").addEventListener("click", () => openHedge("SHORT"));
+$("#btn-close").addEventListener("click", () => closeHedge());
+$("#symbol").addEventListener("change", () => {
+  connectPriceSocket();
+  refreshSymbolInfo();
+});
+$("#leverage").addEventListener("change", refreshSymbolInfo);
+
+// ---------- arranque ----------
+let pollTimer = null;
+async function bootstrap() {
+  if (pollTimer) clearInterval(pollTimer);
+  if (!apiBase()) {
+    $("#config-box").open = true;
+    log("Primero pon la URL de tu servidor de Railway y tu token en Configuración, arriba.");
+    return;
+  }
+  await loadHealth();
+  await refreshAccounts();
+  await refreshSymbolInfo();
+  connectPriceSocket();
+  pollTimer = setInterval(refreshAccounts, 2000);
+}
+
+loadConfigIntoInputs();
+bootstrap();
+</script>
 </body>
 </html>

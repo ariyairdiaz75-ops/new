@@ -25,45 +25,62 @@ según el apalancamiento seleccionado.
   propias cuentas. Tú eres responsable de cómo la usas y de cumplir los
   Términos de Servicio de Binance.
 
+El frontend (`frontend/index.html`) es **un solo archivo** (HTML+CSS+JS
+juntos). El servidor (backend en Python) va desplegado en **Railway**, así
+que el HTML se lo sirve el propio servidor — no necesitas instalar nada más
+para verlo, solo abrir la URL de Railway en tu navegador.
+
 ## 1. Requisitos
 
-- Python 3.11+
+- Una cuenta de Railway (https://railway.app) — gratis para empezar.
 - Una cuenta de Binance con Futuros habilitado.
 - Una sub-cuenta de Binance con su **propia API key de Futuros** (se crea
   desde Binance → Sub-cuentas → [tu sub-cuenta] → Administrar API).
 
-## 2. Instalación
+## 2. Desplegar el servidor en Railway
 
-```bash
-python -m venv .venv
-source .venv/bin/activate   # en Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-```
+1. Sube este proyecto a un repo de GitHub (o usa el que ya tienes).
+2. En Railway: **New Project → Deploy from GitHub repo** y elige este repo.
+   Railway detecta automáticamente que es Python (por `requirements.txt` y
+   `Procfile`) y lo corre solo.
+3. En el proyecto de Railway ve a **Variables** y agrega estas (con tus
+   datos reales, sin comillas):
 
-Edita `.env` y pon tus API keys reales (empieza con `BINANCE_TESTNET=true`
-para probar con dinero falso):
+   ```
+   BINANCE_TESTNET=true
+   MAIN_LABEL=Principal
+   MAIN_API_KEY=tu_api_key_cuenta_principal
+   MAIN_API_SECRET=tu_api_secret_cuenta_principal
+   SUB_LABEL=Subcuenta
+   SUB_API_KEY=tu_api_key_subcuenta
+   SUB_API_SECRET=tu_api_secret_subcuenta
+   DASHBOARD_TOKEN=algo-largo-y-dificil-de-adivinar
+   ```
 
-```
-BINANCE_TESTNET=true
-MAIN_API_KEY=...
-MAIN_API_SECRET=...
-SUB_API_KEY=...
-SUB_API_SECRET=...
-```
+   `DASHBOARD_TOKEN` es tu propia contraseña para el panel — como el
+   servidor queda con una URL pública en internet, sin este token
+   **cualquiera que la encuentre podría abrir/cerrar órdenes en tus
+   cuentas**. Invéntate algo largo (por ejemplo 32 caracteres random).
+
+4. Railway te da una URL pública, tipo
+   `https://tu-app.up.railway.app`. Ábrela en el navegador: ahí carga el
+   panel directamente (es el mismo servidor sirviendo el HTML).
+5. La primera vez, abre el desplegable **"Configuración"** arriba del
+   panel, pon:
+   - **URL del servidor**: la misma URL de Railway (normalmente ya viene
+     puesta sola).
+   - **Token**: el mismo valor que pusiste en `DASHBOARD_TOKEN`.
+
+   Se guarda en tu navegador (localStorage) para que no lo tengas que
+   escribir cada vez.
 
 Para Testnet, genera las API keys de prueba en
 https://testnet.binancefuture.com (son distintas a las de tu cuenta real).
 
-## 3. Correr el programa
+## 3. Cómo se usa el panel
 
-```bash
-python -m backend.main
-```
-
-Abre en tu navegador: **http://127.0.0.1:8000**
-
-Vas a ver:
+Al abrir la URL (de Railway, o `http://127.0.0.1:8000` si lo corres local)
+vas a ver:
 - Arriba, el precio en vivo del par (actualizado por WebSocket).
 - Dos tarjetas: **Principal** y **Sub-cuenta**, con tu saldo disponible,
   balance total, PnL no realizado y posiciones abiertas — se refrescan cada
@@ -81,18 +98,40 @@ Vas a ver:
 - El botón **Cerrar posiciones (las dos cuentas)** cierra a mercado, con
   `reduceOnly`, lo que esté abierto en cada cuenta al mismo tiempo.
 
-## 4. Pasar a cuentas reales
+## 4. Alternativa: correrlo en tu computadora (sin Railway)
+
+Si prefieres probarlo local antes de subirlo:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # en Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Edita `.env` y pon tus API keys reales (`DASHBOARD_TOKEN` es opcional en
+local, ya que 127.0.0.1 no es accesible desde internet).
+
+```bash
+python -m backend.main
+```
+
+Abre **http://127.0.0.1:8000** — el campo "URL del servidor" en
+Configuración se auto-completa solo con esa misma dirección.
+
+## 5. Pasar a cuentas reales
 
 Cuando ya probaste todo en Testnet y funciona como esperas:
 
 1. Genera API keys reales en tu cuenta principal y en tu sub-cuenta (con
    permiso de Futuros, sin retiros, idealmente con whitelist de IP).
-2. En `.env`, pon `BINANCE_TESTNET=false` y reemplaza las 4 API
-   keys/secrets por las reales.
-3. Reinicia el programa. Vas a ver una barra roja arriba que dice **"MODO EN
-   VIVO"** para que nunca confundas testnet con dinero real. Además, en modo
-   en vivo el programa te pide una confirmación extra antes de mandar
-   cualquier orden.
+2. Cambia las variables en Railway (o en tu `.env` local): pon
+   `BINANCE_TESTNET=false` y reemplaza las 4 API keys/secrets por las
+   reales.
+3. El servidor se reinicia solo (Railway) o reinícialo tú (local). Vas a
+   ver una barra roja arriba que dice **"MODO EN VIVO"** para que nunca
+   confundas testnet con dinero real. Además, en modo en vivo el panel te
+   pide una confirmación extra antes de mandar cualquier orden.
 
 ## Estructura del proyecto
 
@@ -101,10 +140,11 @@ backend/
   binance_client.py   -> llamadas firmadas a la API de Binance Futures
   accounts.py          -> instancia los dos clientes (principal y sub)
   hedge.py              -> abre/cierra órdenes en paralelo, direcciones contrarias
-  config.py             -> lee el .env
-  main.py               -> servidor FastAPI + endpoints + websocket de precio
+  config.py             -> lee variables de entorno (.env local o Railway)
+  main.py               -> servidor FastAPI + endpoints + token + websocket de precio
 frontend/
-  index.html, app.js, style.css  -> el panel
+  index.html             -> el panel completo: HTML + CSS + JS en un solo archivo
+Procfile                 -> comando de arranque que usa Railway
 ```
 
 ## Limitaciones conocidas / ideas para mejorar

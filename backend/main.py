@@ -1,10 +1,11 @@
 import asyncio
 import json
+import secrets
 
 import websockets
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 
 from backend.accounts import ACCOUNTS, close_all
 from backend.binance_client import BinanceAPIError
@@ -13,8 +14,27 @@ from backend.hedge import close_hedge, open_hedge, prepare_symbol
 
 app = FastAPI(title="Binance Hedge Dashboard")
 
+# El HTML es un solo archivo que puede abrirse desde cualquier origen
+# (file://, otro dominio, etc.), así que se habilita CORS. La protección
+# real la da el token (ver require_token / DASHBOARD_TOKEN).
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 FRONTEND_DIR = "frontend"
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+
+def require_token(x_dashboard_token: str = Header(default="")):
+    """Protege el panel cuando el servidor está público (Railway, etc).
+    Si DASHBOARD_TOKEN no está configurado, no exige nada (solo pensado
+    para correr en tu propia máquina, 127.0.0.1)."""
+    if settings.dashboard_token and not secrets.compare_digest(
+        x_dashboard_token or "", settings.dashboard_token
+    ):
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
 
 
 @app.get("/")
@@ -29,10 +49,10 @@ async def _shutdown():
 
 @app.get("/api/health")
 async def health():
-    return {"ok": True, "testnet": settings.binance_testnet}
+    return {"ok": True, "testnet": settings.binance_testnet, "requires_token": bool(settings.dashboard_token)}
 
 
-@app.get("/api/accounts/summary")
+@app.get("/api/accounts/summary", dependencies=[Depends(require_token)])
 async def accounts_summary():
     async def _summary(key: str):
         client = ACCOUNTS[key]
@@ -69,7 +89,7 @@ async def accounts_summary():
     return dict(zip(ACCOUNTS.keys(), results))
 
 
-@app.get("/api/symbol/{symbol}")
+@app.get("/api/symbol/{symbol}", dependencies=[Depends(require_token)])
 async def symbol_info(symbol: str):
     symbol = symbol.upper()
     client = ACCOUNTS["main"]
@@ -96,7 +116,7 @@ async def symbol_info(symbol: str):
     }
 
 
-@app.post("/api/symbol/{symbol}/prepare")
+@app.post("/api/symbol/{symbol}/prepare", dependencies=[Depends(require_token)])
 async def prepare(symbol: str, body: dict):
     symbol = symbol.upper()
     leverage = int(body.get("leverage", 10))
@@ -105,7 +125,7 @@ async def prepare(symbol: str, body: dict):
     return result
 
 
-@app.post("/api/hedge/open")
+@app.post("/api/hedge/open", dependencies=[Depends(require_token)])
 async def hedge_open(body: dict):
     symbol = body["symbol"].upper()
     main_direction = body["main_direction"].upper()
@@ -128,7 +148,7 @@ async def hedge_open(body: dict):
         return {"error": str(e)}
 
 
-@app.post("/api/hedge/close")
+@app.post("/api/hedge/close", dependencies=[Depends(require_token)])
 async def hedge_close(body: dict):
     symbol = body["symbol"].upper()
     result = await close_hedge(symbol)
@@ -137,6 +157,11 @@ async def hedge_close(body: dict):
 
 @app.websocket("/ws/price/{symbol}")
 async def ws_price(websocket: WebSocket, symbol: str):
+    token = websocket.query_params.get("token", "")
+    if settings.dashboard_token and not secrets.compare_digest(token, settings.dashboard_token):
+        await websocket.close(code=4401)
+        return
+
     await websocket.accept()
     symbol = symbol.lower()
     stream_host = "wss://stream.binancefuture.com" if settings.binance_testnet else "wss://fstream.binance.com"
