@@ -1,0 +1,153 @@
+:root {
+  --bg: #0b0e11;
+  --panel: #161a1e;
+  --panel-2: #1e2329;
+  --text: #eaecef;
+  --muted: #848e9c;
+  --green: #0ecb81;
+  --red: #f6465d;
+  --accent: #f0b90b;
+  --border: #2b3139;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.banner {
+  text-align: center;
+  padding: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  display: none;
+}
+.banner.testnet {
+  display: block;
+  background: var(--accent);
+  color: #1b1b1b;
+}
+.banner.live {
+  display: block;
+  background: var(--red);
+  color: white;
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.topbar h1 { font-size: 16px; margin: 0; }
+.price-box { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+#live-price { font-size: 18px; font-weight: 700; color: var(--green); }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-off { background: var(--red); }
+.dot-on { background: var(--green); }
+
+.accounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 480px) {
+  .accounts { grid-template-columns: 1fr; }
+}
+
+.account-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+.account-card h3 { margin: 0 0 8px; font-size: 13px; display: flex; gap: 6px; align-items: center; }
+.tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.tag-main { background: rgba(14,203,129,0.15); color: var(--green); }
+.tag-sub { background: rgba(240,185,11,0.15); color: var(--accent); }
+.acc-label { color: var(--muted); font-weight: 400; }
+
+.row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.row span { color: var(--muted); }
+.positions { margin-top: 6px; font-size: 12px; }
+.position-line { display: flex; justify-content: space-between; padding: 2px 0; border-top: 1px dashed var(--border); }
+.pos-long { color: var(--green); }
+.pos-short { color: var(--red); }
+
+.order-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab {
+  flex: 1;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.tab.active { color: var(--text); border-color: var(--accent); }
+
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.field input, .field select {
+  width: 100%;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+}
+.field small { color: var(--muted); font-size: 11px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+
+.direction-info {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+
+.action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.btn { padding: 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.btn-long { background: var(--green); color: #05130c; }
+.btn-short { background: var(--red); color: #fff; }
+.btn-close { width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.result-log {
+  margin-top: 12px;
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  background: #000;
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

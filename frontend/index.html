@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hedge Dashboard - Binance Futures</title>
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div id="testnet-banner" class="banner"></div>
+
+<div class="app">
+  <header class="topbar">
+    <h1>Hedge Futuros · Principal &amp; Sub-cuenta</h1>
+    <div class="price-box">
+      <span id="symbol-label">--</span>
+      <span id="live-price">0.0000</span>
+      <span id="ws-status" class="dot dot-off"></span>
+    </div>
+  </header>
+
+  <section class="accounts">
+    <div class="account-card" id="card-main">
+      <h3><span class="tag tag-main">Principal</span> <span class="acc-label"></span></h3>
+      <div class="row"><span>Disponible</span><b class="avail">-- USDT</b></div>
+      <div class="row"><span>Wallet</span><b class="wallet">-- USDT</b></div>
+      <div class="row"><span>PnL no realizado</span><b class="pnl">--</b></div>
+      <div class="positions"></div>
+    </div>
+    <div class="account-card" id="card-sub">
+      <h3><span class="tag tag-sub">Sub-cuenta</span> <span class="acc-label"></span></h3>
+      <div class="row"><span>Disponible</span><b class="avail">-- USDT</b></div>
+      <div class="row"><span>Wallet</span><b class="wallet">-- USDT</b></div>
+      <div class="row"><span>PnL no realizado</span><b class="pnl">--</b></div>
+      <div class="positions"></div>
+    </div>
+  </section>
+
+  <section class="order-panel">
+    <div class="tabs">
+      <button class="tab active" data-type="MARKET">Mercado</button>
+      <button class="tab" data-type="LIMIT">Límite</button>
+    </div>
+
+    <div class="field">
+      <label>Símbolo (par de Futuros)</label>
+      <input id="symbol" type="text" value="ARKMUSDT" />
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Apalancamiento</label>
+        <select id="leverage">
+          <option>5</option><option>10</option><option selected>20</option><option>25</option><option>50</option><option>75</option><option>100</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Margen</label>
+        <select id="margin-type">
+          <option value="CROSSED" selected>Cruzado</option>
+          <option value="ISOLATED">Aislado</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" id="price-field" style="display:none">
+      <label>Precio Límite</label>
+      <input id="price" type="number" step="any" placeholder="0.0000" />
+    </div>
+
+    <div class="field">
+      <label>Cantidad (en el activo, ej. ARKM)</label>
+      <input id="quantity" type="number" step="any" placeholder="0.00" />
+      <small id="qty-hint">Máx aprox. con apalancamiento: --</small>
+    </div>
+
+    <label class="checkbox"><input type="checkbox" id="reduce-only" /> Reduce-Only</label>
+
+    <div class="direction-info">
+      La <b>Principal</b> abrirá en la dirección que elijas abajo. La
+      <b>Sub-cuenta</b> abrirá automáticamente en la dirección <b>contraria</b>,
+      al mismo tiempo.
+    </div>
+
+    <div class="action-buttons">
+      <button id="btn-long" class="btn btn-long">Comprar / Long (Principal)</button>
+      <button id="btn-short" class="btn btn-short">Vender / Short (Principal)</button>
+    </div>
+
+    <button id="btn-close" class="btn btn-close">Cerrar posiciones (las dos cuentas)</button>
+
+    <div id="result-log" class="result-log"></div>
+  </section>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
