@@ -1,6 +1,6 @@
 """
 Cliente async para la API de Binance Futures (USDT-M).
-Se usa una instancia por cuenta (principal y sub-cuenta), cada una con
+Se usa una instancia por cuenta (Cuenta A y Cuenta B), cada una con
 su propio API key/secret. No guarda ni imprime nunca el secret.
 """
 import hashlib

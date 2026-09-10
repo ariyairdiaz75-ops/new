@@ -1,7 +1,8 @@
 """
-Orquesta abrir/cerrar posiciones EN PARALELO en las dos cuentas (principal y
-sub-cuenta), siempre en direcciones contrarias. Usa asyncio.gather para que
-las dos órdenes salgan al mismo tiempo (mínimo desface posible).
+Orquesta abrir/cerrar posiciones EN PARALELO en las dos cuentas (A y B,
+sean tuyas o de otra persona), siempre en direcciones contrarias. Usa
+asyncio.gather para que las dos órdenes salgan al mismo tiempo (mínimo
+desface posible).
 """
 import asyncio
 import math
@@ -54,7 +55,7 @@ async def prepare_symbol(symbol: str, leverage: int, margin_type: str):
 
 async def open_hedge(
     symbol: str,
-    main_direction: str,  # "LONG" o "SHORT" -- lo que hará la cuenta principal
+    main_direction: str,  # "LONG" o "SHORT" -- lo que hará la Cuenta A
     order_type: str,  # "MARKET" o "LIMIT"
     quantity: float,
     price: float | None = None,
@@ -62,8 +63,8 @@ async def open_hedge(
     time_in_force: str = "GTC",
 ):
     """
-    Abre una orden en la cuenta principal en `main_direction` y, al mismo
-    tiempo, una orden en la sub-cuenta en la dirección contraria.
+    Abre una orden en la Cuenta A en `main_direction` y, al mismo
+    tiempo, una orden en la Cuenta B en la dirección contraria.
     """
     main_direction = main_direction.upper()
     sub_direction = OPPOSITE[main_direction]

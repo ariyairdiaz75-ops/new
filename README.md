@@ -1,29 +1,40 @@
-# Hedge Dashboard — Binance Futures (Cuenta Principal + Sub-cuenta)
+# Hedge Dashboard — Binance Futures (Cuenta A + Cuenta B)
 
-Panel web local que abre y cierra órdenes de Futuros **al mismo tiempo** en
-tu cuenta principal y tu sub-cuenta de Binance, siempre en **direcciones
-contrarias** (una long, la otra short), con las mismas especificaciones de
-orden (símbolo, tipo, cantidad, apalancamiento). Muestra en vivo tu saldo
-disponible, tu balance total, el precio del par y hasta cuánto puedes abrir
-según el apalancamiento seleccionado.
+Panel web que abre y cierra órdenes de Futuros **al mismo tiempo** en dos
+cuentas de Binance (la tuya y la de otra persona, o tu cuenta + tu
+sub-cuenta — el programa las trata igual: dos API keys independientes),
+siempre en **direcciones contrarias** (una long, la otra short), con las
+mismas especificaciones de orden (símbolo, tipo, cantidad, apalancamiento).
+Muestra en vivo el saldo disponible de cada cuenta, el balance total, el
+precio del par y hasta cuánto se puede abrir según el apalancamiento
+seleccionado.
 
 ## ⚠️ Antes de usarlo
 
-- **Nunca compartas tus API keys ni tu API secret con nadie.** Este programa
-  las guarda solo en tu archivo `.env`, en tu propia computadora/servidor, y
-  nunca las envía a ningún lado excepto a Binance.
+- **Nunca compartas tus API keys ni tu API secret con nadie**, y lo mismo
+  para la otra persona si Cuenta B es suya. Cada quien genera su propia API
+  key desde su propia cuenta de Binance — nunca se comparten usuario ni
+  contraseña de Binance. Estas claves solo se guardan como variables de
+  entorno (en Railway o en tu `.env` local) y nunca se envían a ningún lado
+  excepto a Binance.
 - Al crear las API keys en Binance, actives **solo** los permisos que
   necesitas: **Habilitar Futuros**. **NO actives "Habilitar Retiros"**.
-- Se recomienda además restringir las API keys a la IP desde donde corres
-  este programa (Binance permite poner un whitelist de IPs por API key).
+- Se recomienda además restringir las API keys a IPs de confianza (Binance
+  permite poner un whitelist de IPs por API key).
 - Operar en Futuros con apalancamiento (x20 o más) es de **alto riesgo**:
-  puedes perder tu margen rápido. Abrir "hedge" en dos cuentas (una long,
+  se puede perder el margen rápido. Abrir "hedge" en dos cuentas (una long,
   una short) **no elimina el riesgo**: cada cuenta puede liquidarse por su
   lado (por ejemplo por comisiones, funding rate o si una orden falla y la
   otra sí se ejecuta). Empieza siempre en **Testnet**.
-- Este proyecto es una herramienta de automatización personal para tus
-  propias cuentas. Tú eres responsable de cómo la usas y de cumplir los
-  Términos de Servicio de Binance.
+- **Si Cuenta B es de otra persona (un amigo, socio, etc.):** las dos
+  credenciales van a quedar en el mismo servidor. Asegúrense de estar de
+  acuerdo en quién administra el servidor/Railway, qué pasa si una orden
+  falla en una cuenta y en la otra no, y que ambos entienden y aceptan el
+  riesgo antes de usar dinero real. Este programa no reparte pérdidas ni
+  resuelve conflictos entre las dos personas — eso lo acuerdan ustedes.
+- Este proyecto es una herramienta de automatización personal. Cada usuario
+  es responsable de cómo la usa y de cumplir los Términos de Servicio de
+  Binance.
 
 El frontend (`frontend/index.html`) es **un solo archivo** (HTML+CSS+JS
 juntos). El servidor (backend en Python) va desplegado en **Railway**, así
@@ -33,9 +44,9 @@ para verlo, solo abrir la URL de Railway en tu navegador.
 ## 1. Requisitos
 
 - Una cuenta de Railway (https://railway.app) — gratis para empezar.
-- Una cuenta de Binance con Futuros habilitado.
-- Una sub-cuenta de Binance con su **propia API key de Futuros** (se crea
-  desde Binance → Sub-cuentas → [tu sub-cuenta] → Administrar API).
+- Dos cuentas de Binance con Futuros habilitado, cada una con su **propia
+  API key**: la tuya (Cuenta A) y la de Cuenta B (puede ser tu sub-cuenta,
+  o la cuenta de otra persona — para el programa da igual).
 
 ## 2. Desplegar el servidor en Railway
 
@@ -48,12 +59,12 @@ para verlo, solo abrir la URL de Railway en tu navegador.
 
    ```
    BINANCE_TESTNET=true
-   MAIN_LABEL=Principal
-   MAIN_API_KEY=tu_api_key_cuenta_principal
-   MAIN_API_SECRET=tu_api_secret_cuenta_principal
-   SUB_LABEL=Subcuenta
-   SUB_API_KEY=tu_api_key_subcuenta
-   SUB_API_SECRET=tu_api_secret_subcuenta
+   MAIN_LABEL=Yo
+   MAIN_API_KEY=tu_api_key
+   MAIN_API_SECRET=tu_api_secret
+   SUB_LABEL=Nombre del amigo
+   SUB_API_KEY=api_key_de_la_segunda_cuenta
+   SUB_API_SECRET=api_secret_de_la_segunda_cuenta
    DASHBOARD_TOKEN=algo-largo-y-dificil-de-adivinar
    ```
 
@@ -82,17 +93,18 @@ https://testnet.binancefuture.com (son distintas a las de tu cuenta real).
 Al abrir la URL (de Railway, o `http://127.0.0.1:8000` si lo corres local)
 vas a ver:
 - Arriba, el precio en vivo del par (actualizado por WebSocket).
-- Dos tarjetas: **Principal** y **Sub-cuenta**, con tu saldo disponible,
-  balance total, PnL no realizado y posiciones abiertas — se refrescan cada
-  2 segundos.
+- Dos tarjetas: **Cuenta A** y **Cuenta B** (con el nombre que hayas puesto
+  en `MAIN_LABEL`/`SUB_LABEL`), con el saldo disponible, balance total, PnL
+  no realizado y posiciones abiertas de cada una — se refrescan cada 2
+  segundos.
 - El panel de orden: símbolo, apalancamiento, margen (Cruzado/Aislado),
   Mercado o Límite, cantidad.
-- Dos botones grandes: **Comprar/Long (Principal)** y **Vender/Short
-  (Principal)**. Al presionar cualquiera de los dos, el programa:
+- Dos botones grandes: **Comprar/Long (Cuenta A)** y **Vender/Short (Cuenta
+  A)**. Al presionar cualquiera de los dos, el programa:
   1. Fija el apalancamiento y el tipo de margen en **ambas** cuentas.
-  2. Manda la orden en la cuenta principal en la dirección elegida y, **en
-     paralelo** (con `asyncio.gather`, no una después de la otra), la orden
-     contraria en la sub-cuenta.
+  2. Manda la orden en Cuenta A en la dirección elegida y, **en paralelo**
+     (con `asyncio.gather`, no una después de la otra), la orden contraria
+     en Cuenta B.
   3. Te muestra abajo el resultado de las dos órdenes y cuántos
      milisegundos tardó cada una, para que veas que no hay desface.
 - El botón **Cerrar posiciones (las dos cuentas)** cierra a mercado, con
@@ -123,8 +135,8 @@ Configuración se auto-completa solo con esa misma dirección.
 
 Cuando ya probaste todo en Testnet y funciona como esperas:
 
-1. Genera API keys reales en tu cuenta principal y en tu sub-cuenta (con
-   permiso de Futuros, sin retiros, idealmente con whitelist de IP).
+1. Genera API keys reales en Cuenta A y en Cuenta B (cada quien la suya,
+   con permiso de Futuros, sin retiros, idealmente con whitelist de IP).
 2. Cambia las variables en Railway (o en tu `.env` local): pon
    `BINANCE_TESTNET=false` y reemplaza las 4 API keys/secrets por las
    reales.
@@ -138,7 +150,7 @@ Cuando ya probaste todo en Testnet y funciona como esperas:
 ```
 backend/
   binance_client.py   -> llamadas firmadas a la API de Binance Futures
-  accounts.py          -> instancia los dos clientes (principal y sub)
+  accounts.py          -> instancia los dos clientes (Cuenta A y Cuenta B)
   hedge.py              -> abre/cierra órdenes en paralelo, direcciones contrarias
   config.py             -> lee variables de entorno (.env local o Railway)
   main.py               -> servidor FastAPI + endpoints + token + websocket de precio

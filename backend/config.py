@@ -6,11 +6,11 @@ class Settings(BaseSettings):
 
     binance_testnet: bool = True
 
-    main_label: str = "Principal"
+    main_label: str = "Cuenta A"
     main_api_key: str = ""
     main_api_secret: str = ""
 
-    sub_label: str = "Subcuenta"
+    sub_label: str = "Cuenta B"
     sub_api_key: str = ""
     sub_api_secret: str = ""
 
