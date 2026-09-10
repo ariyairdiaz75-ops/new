@@ -43,6 +43,26 @@ body {
   background: var(--red);
   color: white;
 }
+.transfer-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #3a2a06;
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+.transfer-alert button {
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+}
 
 .app {
   max-width: 640px;
@@ -75,6 +95,19 @@ details.config {
 }
 details.config summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 details.config .field { margin-top: 10px; }
+
+.profit-panel .row { padding: 4px 0; }
+.profit-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 15px;
+}
+.profit-total b { font-size: 18px; }
+.profit-panel small { display: block; margin-top: 8px; color: var(--muted); }
 
 .accounts {
   display: grid;
@@ -173,6 +206,7 @@ details.config .field { margin-top: 10px; }
 </head>
 <body>
 <div id="testnet-banner" class="banner"></div>
+<div id="transfer-alert" class="banner transfer-alert" hidden></div>
 
 <div class="app">
   <header class="topbar">
@@ -194,6 +228,20 @@ details.config .field { margin-top: 10px; }
       <label>Token del panel (el mismo que pusiste en DASHBOARD_TOKEN en Railway)</label>
       <input id="dashboard-token" type="password" placeholder="tu-token-secreto" />
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Capital inicial Cuenta A (USDT)</label>
+        <input id="initial-main" type="number" step="any" value="10" />
+      </div>
+      <div class="field">
+        <label>Capital inicial Cuenta B (USDT)</label>
+        <input id="initial-sub" type="number" step="any" value="10" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Avisar cuando el disponible de una cuenta baje de (USDT)</label>
+      <input id="alert-threshold" type="number" step="any" value="5" />
+    </div>
     <button id="btn-save-config" class="btn btn-close" style="margin-top:4px">Guardar y conectar</button>
   </details>
 
@@ -214,6 +262,24 @@ details.config .field { margin-top: 10px; }
     </div>
   </section>
 
+  <details class="config profit-panel" id="profit-box" open>
+    <summary>Ganancia combinada</summary>
+    <div class="profit-rows">
+      <div class="row"><span>Cuenta A: inicial <span id="profit-init-a">$10.00</span> → ahora</span><b id="profit-cur-a">--</b></div>
+      <div class="row"><span>PnL Cuenta A</span><b id="profit-pnl-a">--</b></div>
+      <div class="row"><span>Cuenta B: inicial <span id="profit-init-b">$10.00</span> → ahora</span><b id="profit-cur-b">--</b></div>
+      <div class="row"><span>PnL Cuenta B</span><b id="profit-pnl-b">--</b></div>
+    </div>
+    <div class="profit-total">
+      <span>Ganancia combinada (una cubre lo que perdió la otra)</span>
+      <b id="profit-combined">-- USDT</b>
+    </div>
+    <small>Se calcula con el "capital inicial" que pusiste en Configuración
+      (no lo sabe Binance, lo defines tú) y el balance + PnL no realizado
+      actual de cada cuenta. Es un estimado, no un cierre de cuentas
+      oficial.</small>
+  </details>
+
   <section class="order-panel">
     <div class="tabs">
       <button class="tab active" data-type="MARKET">Mercado</button>
@@ -222,7 +288,9 @@ details.config .field { margin-top: 10px; }
 
     <div class="field">
       <label>Símbolo (par de Futuros)</label>
-      <input id="symbol" type="text" value="ARKMUSDT" />
+      <input id="symbol" type="text" value="ARKMUSDT" list="symbol-options" autocomplete="off" />
+      <datalist id="symbol-options"></datalist>
+      <small id="symbols-hint"></small>
     </div>
 
     <div class="field-row">
@@ -315,11 +383,17 @@ async function api(path, options = {}) {
 function loadConfigIntoInputs() {
   $("#server-url").value = localStorage.getItem("server_url") || (location.origin.startsWith("http") ? location.origin : "");
   $("#dashboard-token").value = localStorage.getItem("dashboard_token") || "";
+  $("#initial-main").value = localStorage.getItem("initial_main") || "10";
+  $("#initial-sub").value = localStorage.getItem("initial_sub") || "10";
+  $("#alert-threshold").value = localStorage.getItem("alert_threshold") || "5";
 }
 
 function saveConfig() {
   localStorage.setItem("server_url", $("#server-url").value.trim());
   localStorage.setItem("dashboard_token", $("#dashboard-token").value.trim());
+  localStorage.setItem("initial_main", $("#initial-main").value || "10");
+  localStorage.setItem("initial_sub", $("#initial-sub").value || "10");
+  localStorage.setItem("alert_threshold", $("#alert-threshold").value || "5");
   $("#config-box").open = false;
   bootstrap();
 }
@@ -381,6 +455,127 @@ async function refreshAccounts() {
     const summary = await api("/api/accounts/summary");
     if (summary.main) renderAccount("#card-main", summary.main);
     if (summary.sub) renderAccount("#card-sub", summary.sub);
+    renderProfitTracker(summary);
+    checkTransferAlert(summary);
+  } catch (e) {
+    // ya se logueó en api()
+  }
+}
+
+// ---------- ganancia combinada ----------
+function equity(accData) {
+  // balance de wallet + PnL no realizado ≈ lo que tendrías si cerraras todo ahora
+  if (!accData || accData.error) return null;
+  return accData.wallet_usdt + accData.cross_unpnl;
+}
+
+function fmtSigned(n) {
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)} USDT`;
+}
+
+function renderProfitTracker(summary) {
+  const initA = Number(localStorage.getItem("initial_main") || 10);
+  const initB = Number(localStorage.getItem("initial_sub") || 10);
+  $("#profit-init-a").textContent = `$${initA.toFixed(2)}`;
+  $("#profit-init-b").textContent = `$${initB.toFixed(2)}`;
+
+  const curA = equity(summary.main);
+  const curB = equity(summary.sub);
+
+  $("#profit-cur-a").textContent = curA === null ? "--" : `$${curA.toFixed(2)}`;
+  $("#profit-cur-b").textContent = curB === null ? "--" : `$${curB.toFixed(2)}`;
+
+  const pnlAEl = $("#profit-pnl-a");
+  const pnlBEl = $("#profit-pnl-b");
+  const combinedEl = $("#profit-combined");
+
+  if (curA === null || curB === null) {
+    pnlAEl.textContent = "--";
+    pnlBEl.textContent = "--";
+    combinedEl.textContent = "-- USDT";
+    combinedEl.style.color = "";
+    return;
+  }
+
+  const pnlA = curA - initA;
+  const pnlB = curB - initB;
+  const combined = pnlA + pnlB;
+
+  pnlAEl.textContent = fmtSigned(pnlA);
+  pnlAEl.style.color = pnlA >= 0 ? "var(--green)" : "var(--red)";
+  pnlBEl.textContent = fmtSigned(pnlB);
+  pnlBEl.style.color = pnlB >= 0 ? "var(--green)" : "var(--red)";
+  combinedEl.textContent = fmtSigned(combined);
+  combinedEl.style.color = combined >= 0 ? "var(--green)" : "var(--red)";
+}
+
+// ---------- alerta de transferencia manual ----------
+function checkTransferAlert(summary) {
+  const threshold = Number(localStorage.getItem("alert_threshold") || 5);
+  const banner = $("#transfer-alert");
+  const snoozeUntil = Number(localStorage.getItem("transfer_alert_snooze") || 0);
+  if (Date.now() < snoozeUntil) {
+    banner.hidden = true;
+    return;
+  }
+
+  const a = summary.main && !summary.main.error ? summary.main : null;
+  const b = summary.sub && !summary.sub.error ? summary.sub : null;
+  if (!a || !b) {
+    banner.hidden = true;
+    return;
+  }
+
+  const aLow = a.available_usdt < threshold;
+  const bLow = b.available_usdt < threshold;
+
+  let message = null;
+  if (aLow && !bLow) {
+    message = `⚠️ ${a.label || "Cuenta A"} se quedó sin USDT disponible (${a.available_usdt.toFixed(2)}). Transfiere $10 desde ${b.label || "Cuenta B"} manualmente en la app de Binance para seguir operando parejo.`;
+  } else if (bLow && !aLow) {
+    message = `⚠️ ${b.label || "Cuenta B"} se quedó sin USDT disponible (${b.available_usdt.toFixed(2)}). Transfiere $10 desde ${a.label || "Cuenta A"} manualmente en la app de Binance para seguir operando parejo.`;
+  } else if (aLow && bLow) {
+    message = `⚠️ Las dos cuentas están con poco USDT disponible (${a.label || "A"}: ${a.available_usdt.toFixed(2)}, ${b.label || "B"}: ${b.available_usdt.toFixed(2)}). Añade fondos a ambas antes de seguir abriendo órdenes.`;
+  }
+
+  if (!message) {
+    banner.hidden = true;
+    return;
+  }
+
+  banner.innerHTML = "";
+  const span = document.createElement("span");
+  span.textContent = message;
+  const btn = document.createElement("button");
+  btn.textContent = "Ya transferí, ocultar por 10 min";
+  btn.addEventListener("click", () => {
+    localStorage.setItem("transfer_alert_snooze", String(Date.now() + 10 * 60 * 1000));
+    banner.hidden = true;
+  });
+  banner.appendChild(span);
+  banner.appendChild(btn);
+  banner.hidden = false;
+}
+
+// ---------- lista de todos los pares de Futuros ----------
+let symbolsLoaded = false;
+async function loadSymbols() {
+  try {
+    const data = await api("/api/symbols");
+    if (data.error || !data.symbols) {
+      $("#symbols-hint").textContent = "No se pudo cargar la lista de monedas.";
+      return;
+    }
+    const datalist = $("#symbol-options");
+    datalist.innerHTML = "";
+    for (const s of data.symbols) {
+      const opt = document.createElement("option");
+      opt.value = s;
+      datalist.appendChild(opt);
+    }
+    $("#symbols-hint").textContent = `${data.symbols.length} pares de Futuros disponibles — empieza a escribir para buscar.`;
+    symbolsLoaded = true;
   } catch (e) {
     // ya se logueó en api()
   }
@@ -545,6 +740,7 @@ async function bootstrap() {
     return;
   }
   await loadHealth();
+  if (!symbolsLoaded) await loadSymbols();
   await refreshAccounts();
   await refreshSymbolInfo();
   connectPriceSocket();

@@ -97,8 +97,10 @@ vas a ver:
   en `MAIN_LABEL`/`SUB_LABEL`), con el saldo disponible, balance total, PnL
   no realizado y posiciones abiertas de cada una — se refrescan cada 2
   segundos.
-- El panel de orden: símbolo, apalancamiento, margen (Cruzado/Aislado),
-  Mercado o Límite, cantidad.
+- El panel de orden: un campo de **símbolo con autocompletado** (escribe y
+  te sugiere entre todos los pares de Futuros Perpetuos de Binance, por
+  ejemplo `ARKMUSDT`, `BTCUSDT`, etc. — se carga solo al abrir el panel),
+  apalancamiento, margen (Cruzado/Aislado), Mercado o Límite, cantidad.
 - Dos botones grandes: **Comprar/Long (Cuenta A)** y **Vender/Short (Cuenta
   A)**. Al presionar cualquiera de los dos, el programa:
   1. Fija el apalancamiento y el tipo de margen en **ambas** cuentas.
@@ -109,6 +111,23 @@ vas a ver:
      milisegundos tardó cada una, para que veas que no hay desface.
 - El botón **Cerrar posiciones (las dos cuentas)** cierra a mercado, con
   `reduceOnly`, lo que esté abierto en cada cuenta al mismo tiempo.
+- **Ganancia combinada**: pones cuánto puso cada quien como "capital
+  inicial" (por defecto $10 en cada campo, dentro de Configuración) y el
+  panel calcula, con el balance + PnL no realizado actual de cada cuenta,
+  cuánto lleva ganando/perdiendo cada una y la **suma neta de las dos**. Por
+  ejemplo: si Cuenta A puso $10 y los perdió todos (queda en $0, PnL
+  -$10), y Cuenta B puso $10 y ya lleva $22 (PnL +$12), la ganancia
+  combinada que se muestra es **+$2** (-10 + 12). Es un estimado tuyo, no
+  algo que Binance sepa — tú defines el capital inicial.
+- **Alerta de transferencia manual**: si el disponible de una cuenta baja
+  del umbral que configures (por defecto $5 USDT), aparece una barra
+  arriba avisando cuál cuenta se quedó sin fondos y sugiriendo transferirle
+  ~$10 desde la otra. **La transferencia la hacen ustedes manualmente en la
+  app de Binance** — el programa no mueve dinero entre las dos cuentas de
+  forma automática, porque hacerlo solo, sin que nadie confirme, requeriría
+  activar un permiso de nivel "retiros" en una de las API keys, lo cual
+  expondría toda esa cuenta (no solo Futuros) si esa clave se filtra algún
+  día. El botón "Ya transferí" solo oculta el aviso 10 minutos.
 
 ## 4. Alternativa: correrlo en tu computadora (sin Railway)
 

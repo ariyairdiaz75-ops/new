@@ -79,8 +79,11 @@ class BinanceFuturesClient:
     async def get_mark_price(self, symbol: str) -> dict:
         return await self._request("GET", "/fapi/v1/premiumIndex", {"symbol": symbol})
 
+    async def get_exchange_info(self) -> dict:
+        return await self._request("GET", "/fapi/v1/exchangeInfo")
+
     async def get_symbol_filters(self, symbol: str) -> dict:
-        info = await self._request("GET", "/fapi/v1/exchangeInfo")
+        info = await self.get_exchange_info()
         for s in info["symbols"]:
             if s["symbol"] == symbol:
                 return s

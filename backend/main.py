@@ -1,6 +1,7 @@
 import asyncio
 import json
 import secrets
+import time
 
 import websockets
 from fastapi import Depends, FastAPI, Header, HTTPException, WebSocket, WebSocketDisconnect
@@ -50,6 +51,40 @@ async def _shutdown():
 @app.get("/api/health")
 async def health():
     return {"ok": True, "testnet": settings.binance_testnet, "requires_token": bool(settings.dashboard_token)}
+
+
+_symbols_cache: dict = {"symbols": None, "fetched_at": 0}
+_SYMBOLS_CACHE_TTL = 6 * 60 * 60  # 6 horas: la lista de pares casi no cambia
+
+
+@app.get("/api/symbols", dependencies=[Depends(require_token)])
+async def list_symbols():
+    now = time.time()
+    if _symbols_cache["symbols"] is not None and now - _symbols_cache["fetched_at"] < _SYMBOLS_CACHE_TTL:
+        return {"symbols": _symbols_cache["symbols"]}
+
+    client = ACCOUNTS["main"]
+    try:
+        info = await client.get_exchange_info()
+    except BinanceAPIError as e:
+        # Si Binance falla pero ya teníamos una lista vieja en caché, mejor
+        # devolver esa que dejar el selector vacío.
+        if _symbols_cache["symbols"] is not None:
+            return {"symbols": _symbols_cache["symbols"]}
+        return {"error": e.payload}
+    except Exception as e:
+        if _symbols_cache["symbols"] is not None:
+            return {"symbols": _symbols_cache["symbols"]}
+        return {"error": str(e)}
+
+    symbols = sorted(
+        s["symbol"]
+        for s in info["symbols"]
+        if s.get("status") == "TRADING" and s.get("contractType") == "PERPETUAL"
+    )
+    _symbols_cache["symbols"] = symbols
+    _symbols_cache["fetched_at"] = now
+    return {"symbols": symbols}
 
 
 @app.get("/api/accounts/summary", dependencies=[Depends(require_token)])
